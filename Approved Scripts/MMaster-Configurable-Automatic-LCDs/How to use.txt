@@ -1,0 +1,26 @@
+MMaster's Configurable Automatic LCDs!
+
+This script is permitted but only when run on a timer that does NOT trigger itself, and has a timer period that is at least 5 seconds.
+Additionally, if the script is not run on a timer, it is permitted to run the script on a button.
+
+The version of the script in the Github folder is version 1 of the script since it is not obfuscated;
+Both versions are permitted for use, but it is recommended to use version 2.
+
+How to setup this script:
+1. First place a programmable block, with the script, onto the grid.
+2. Place a timer block onto the grid. Set the duration of the timer block to at least 5 seconds.
+   For the timer blocks actions:
+   - Run the programmable block, with no argument
+   - Start the same timer block, so that it continuously runs. (the timer block starts itself)
+   
+3. Next, place any LCDs that you wish to display information to. 
+	add [LCD] to each LCD you wish to display information to.
+	
+	See here for documentation on LCD parameters: http://steamcommunity.com/sharedfiles/filedetails/?id=407158161
+	If you are using version 1 of the script: 
+		place the LCD parameters into the PUBLIC TITLE of the LCD panel.
+	
+	If you are using version 2 of the script:
+		place the LCD parameters into the CUSTOM DATA of the LCD panel.
+
+4. Start the script by Starting the timer block.
