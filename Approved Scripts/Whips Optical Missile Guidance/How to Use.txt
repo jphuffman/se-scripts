@@ -1,0 +1,48 @@
+Whip's optical missile guidance!
+This script lets you make guided torpedos that essentially aim in a straight line along the front of your ship (or along the aiming direction of a turret).
+So if your ship is pointed at the enemy, the torpedo will fly towards the enemy!
+
+It is confirmed that this script, even when on a timer that triggers itself, uses at most 1% of a server tick. 
+This means that running this script uses, on average, less than 0.01 sim speed. And torpedos are generally short-lived anyhow.
+
+____________________________________________________________            
+///MISSILE SETUP INSTRUCTIONS///  
+ 
+===REQUIRED BLOCKS===  
+    * A timer  
+    * A Remote Control pointing FORWARD  
+    * A program block with this code  
+    * A battery or reactor (for power)  
+    * A merge, connector, or rotor (for attachment points)  
+    * A gyroscope pointing forward  
+ 
+    OPTIONAL BLOCKS:  
+    * An artificial mass block  
+    * A beacon  
+    * An antenna  
+ 
+    ALL BLOCKS on the missile should have the name tag "Missile 1" added in their names.  
+ 
+===ADDITIONAL NAME TAGS===  
+    Some specific blocks need ADDITIONAL name tags  
+ 
+    * Any detach thrusters need the name tag "Detach" in addition to the missile tag  
+ 
+===TIMER SETUP===  
+    The timer should be set to:  
+    * "Start" itself  
+    * "Trigger Now" itself  
+    * "Run" the missile program with the argument "fire"  
+______________________________________________________________________            
+///SHOOTER SHIP SETUP///  
+ 
+    The shooter ship needs:  
+    * A remote with name tag "Shooter Reference" pointing in the direction you eant the missile to fly. 
+    * A method to connect to the missile (merge, rotor, or connector) 
+______________________________________________________________________            
+///FIRING INSTRUCTIONS///  
+ 
+    The missile must be physically attached to the shooter ship before firing. 
+    To fire the missile, simply trigger the missile timer :)  
+ 
+
