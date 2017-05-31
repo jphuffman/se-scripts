@@ -1,0 +1,45 @@
+Whips weapons sequencer script!
+
+This script will allow you to sequence your weapons, so that you can fire rockets or other cannons one after another rather than all at once.
+
+IT IS CONFIRMED THAT THIS SCRIPT IS LAGGY WHEN USED ON LARGE CAPITAL SHIPS. DON'T DO IT. TRY TO KEEP THIS SCRIPT ONLY ON SMALL SHIPS.
+WHIP IS CURRENTLY WORKING ON A VERSION THAT WORKS SLIGHTLY DIFFERENTLY, BUT WILL NOT LAG WHEN USED ON ANY TYPE OF SHIP.
+
+______________________________________________________________________________________      
+Instructions:     
+   
+    1.) Create a timer. Assign the actions to the following:       
+        * "trigger now" itself   
+        * Run this program [NO ARGUMENTS YET!]     
+    2.) Add the phrase "[Sequenced]" into the name of weapons u want to sequence (without quotes)    
+    3.) Start the timer   
+______________________________________________________________________________________          
+Arguments:    
+   
+    Type in these arguments without quotes. These arguments can be input manually,   
+    through timers, or through sensors. Letter case is unimportant. Seperate     
+    multiple arguments with a semicolon (see examples further down)   
+   
+    "rate [integer]"      
+        changes the rate of fire in rounds per second.    
+        > [Maximum ROF] = [Standard ROF] * [Number of sequenced weapons]   
+            NOTE: The script will round the ROF, this is not a bug!   
+    "delay [integer]"     
+        changes delay between shots to be in terms of frames (60 frames = 1 sec)      
+    "default"      
+        Lets the script to set the fire rate automatically based on the number of       
+        available weapons. The script will attempt to fire ALL sequenced weapons in the   
+        span of ONE second with this particular setting. The script will start in this    
+        mode by default (hence the name :P)   
+    "on"      
+        Toggles fire on only      
+    "off"     
+        Toggles fire off only      
+    "toggle"      
+        Toggles fire on/off     
+______________________________________________________________________________________       
+Examples:   
+   
+    "on;default" will toggle the weapons on and use default rate of fire   
+    "rate 10" will set the rate of fire to 10 rounds per second   
+    "delay 3" will set the delay between weapons to 3 frames       
