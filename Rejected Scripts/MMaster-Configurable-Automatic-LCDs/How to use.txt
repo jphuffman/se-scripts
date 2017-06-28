@@ -1,3 +1,7 @@
+/*
+THIS SCRIPT IS PROHIBITED UNTIL FURTHER NOTICE
+*/
+
 MMaster's Configurable Automatic LCDs!
 
 This script is permitted but only when run on a timer that does NOT trigger itself, and has a timer period that is at least 5 seconds.
