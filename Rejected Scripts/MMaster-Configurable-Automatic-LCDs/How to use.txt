@@ -8,7 +8,7 @@ This script is permitted but only when run on a timer that does NOT trigger itse
 Additionally, if the script is not run on a timer, it is permitted to run the script on a button.
 
 The version of the script in the Github folder is version 1 of the script since it is not obfuscated;
-Both versions are permitted for use, but it is recommended to use version 2.
+Both versions are permitted for use, but it is recommended to use version 2 from the workshop.
 
 How to setup this script:
 1. First place a programmable block, with the script, onto the grid.
