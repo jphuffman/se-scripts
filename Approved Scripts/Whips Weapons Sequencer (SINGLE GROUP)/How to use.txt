@@ -1,5 +1,7 @@
 Whips weapons sequencer script!
 
+Subscribe to it here: https://steamcommunity.com/sharedfiles/filedetails/?id=510805229
+
 This script will allow you to sequence your weapons, so that you can fire rockets or other cannons one after another rather than all at once.
 
 IT IS CONFIRMED THAT THIS SCRIPT IS LAGGY WHEN USED ON LARGE CAPITAL SHIPS. DON'T DO IT. TRY TO KEEP THIS SCRIPT ONLY ON SMALL SHIPS.

@@ -1,0 +1,17 @@
+Whip's Warhead Detonator Script!
+
+All this script does is arm then detonate all warheads on a grid.
+
+First, place a programmable block on the grid with the warheads, and then place the script into it with the "Edit" button. Copy and Paste it in.
+
+This can be used with a sensor or a timer, or even some other script.
+
+To use it with a sensor: put a sensor on the same grid, and set up your sensor's detection parameters as usual (like detecting enemies and range and such)
+When configuring actions with the sensor:
+Left Action -> Programmable block (with this script) -> Run with Default Argument
+Right Action - Leave this empty
+
+
+To use it with a timer, like for a timed bomb: put a timer on the same grid, and set up the timer's delay as usual.
+When configuring actions with the timer:
+1st action (leftmost) -> Programmable block (with this script) -> Run with Default Argument

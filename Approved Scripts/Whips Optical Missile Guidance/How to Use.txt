@@ -1,4 +1,7 @@
 Whip's optical missile guidance!
+
+Subscribe to it here: https://steamcommunity.com/sharedfiles/filedetails/?id=546494746
+
 This script lets you make guided torpedos that essentially aim in a straight line along the front of your ship (or along the aiming direction of a turret).
 So if your ship is pointed at the enemy, the torpedo will fly towards the enemy!
 
