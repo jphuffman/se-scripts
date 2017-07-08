@@ -1,0 +1,8 @@
+MMaster's Configurable Automatic LCDs was rejected by Prior of the Ori, because repeated LCD updates 
+apparently causes severe sim speed dips when all of the factions are running these updates on a number of their LCD panels.
+
+Supposedly, there is a lot of overhead in the back end of sending updates to LCDs that involves performing operations on every
+LCD each time an update is sent to a single LCD? 
+
+The exact reason warrants investigation, but it is confirmed that this script
+is causing obscure but severe performance problems.
