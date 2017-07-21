@@ -114,7 +114,7 @@ void Trigger()
 {
     var timers = new List<IMyTimerBlock>();
     GridTerminalSystem.GetBlocksOfType(timers, block => block.CustomName.Contains(timerName));
-    foreach (IMyWarhead thisTimer in timers)
+    foreach (IMyTimerBlock thisTimer in timers)
     {
         thisTimer.ApplyAction("TriggerNow");
     }
