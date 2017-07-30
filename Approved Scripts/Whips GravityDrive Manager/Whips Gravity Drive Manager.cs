@@ -1,5 +1,5 @@
 /*
-/// Whip's Directional Gravity Drive Control Script v8 - 7/24/17 ///
+/// Whip's Directional Gravity Drive Control Script v10 - 7/28/17 ///
 ________________________________________________
 Description:
 
@@ -10,21 +10,18 @@ Description:
 ________________________________________________
 How do I use this?
 
-    1) Make sure you have at least 1 thruster in each direction that your grav drive
-    should control. I suggest you use Ion engines
+    1) Place this program on your main grid (the grid your control seat is on)
 
-    2) Place this program on your main grid (the grid your control seat is on)
-
-    3) Make a timer block with actions:
+    2) Make a timer block with actions:
     - "Run" this program with NO ARGUMENT
     - "Trigger Now" itself 
     - "Start" itself 
 
-    4) Make a group with all of your gravity drive artificial masses and gravity gens. Name it "Gravity Drive"
+    3) Make a group with all of your gravity drive artificial masses and gravity gens. Name it "Gravity Drive"
 
-    5) Trigger the timer
+    4) Trigger the timer
 
-    6) Enjoy!
+    5) Enjoy!
 ________________________________________________
 Arguments
 
@@ -34,8 +31,8 @@ Arguments
 ________________________________________________
 Author's Notes
 
-    This code was written pon request of my friend Avalash for his big cool carrier thing. I've decided to polish this code
-    and release it to the public. Leave any questions, comments, or converns on the workshop page!
+    This code was written on request of my friend Avalash for his big cool carrier thing. I've decided to polish this code
+    and release it to the public. Leave any questions, comments, or concerns on the workshop page!
 
 - Whiplash141
 */
@@ -45,7 +42,14 @@ const string gravityDriveGroupName = "Gravity Drive";
 
 float gravityDriveDampenerScalingFactor = 0.1f;
 //larger values will quicken the dampening using gravity gens but will also risk causing oscillations
-//The lighter your ship, the smaller this should be
+//The higher the acceleration of your ship, the smaller this should be
+
+double speedThreshold = 0;
+//Speed at which the code will stop using gravity drives. Zero means that 
+//the drive will never turn off (useful for ships with no thrusters)
+
+bool useGyrosToStabilize = true;
+//If the script will override gyros to try and combat torque
 
 //-------------------------------------------------------------------------
 //============ NO TOUCH BELOW HERE!!! =====================================
@@ -104,6 +108,8 @@ void Main(string arg)
                 Echo("\nGravity Drive is Disabled");
 
             Echo($"\nGravity Drive Stats:\n Artificial Masses: {artMasses.Count}\n Gravity Generators:\n >Forward: {fowardGens.Count}\n >Backward: {backwardGens.Count}\n >Left: {leftGens.Count}\n >Right: {rightGens.Count}\n >Up: {upGens.Count}\n >Down: {downGens.Count}\n >Other: {otherGens.Count}");
+            
+            Echo($"\nGyro Stabilization: {useGyrosToStabilize}\n Gyro count: {gyros.Count}");
 
             ManageGravDrive(turnOn);
             timeCurrentCycle = 0;
@@ -151,10 +157,8 @@ List<IMyGravityGenerator> otherGens = new List<IMyGravityGenerator>();
 List<List<IMyGravityGenerator>> gravityList = new List<List<IMyGravityGenerator>>();
 List<IMyVirtualMass> artMasses = new List<IMyVirtualMass>();
 List<IMyThrust> onGridThrust = new List<IMyThrust>();
+List<IMyGyro> gyros = new List<IMyGyro>();
 IMyBlockGroup gravityDriveGroup = null;
-
-
-
 
 bool GrabBlocks()
 {
@@ -169,10 +173,12 @@ bool GrabBlocks()
     otherGens.Clear();
     artMasses.Clear();
     gravityList.Clear();
+    gyros.Clear();
     gravityDriveGroup = null;
 
     GridTerminalSystem.GetBlocksOfType(shipControllers, block => block.CubeGrid == Me.CubeGrid); //makes sure controller is on same grid
     GridTerminalSystem.GetBlocksOfType(onGridThrust, block => block.CubeGrid == Me.CubeGrid);
+    GridTerminalSystem.GetBlocksOfType(gyros, block => block.CubeGrid == Me.CubeGrid);
     gravityDriveGroup = GridTerminalSystem.GetBlockGroupWithName(gravityDriveGroupName);
 
     #region block_check
@@ -237,13 +243,41 @@ bool GrabBlocks()
     #endregion
 }
 
+//Does the job well enough lol
+void OverrideGyros(bool overrideOn)
+{
+    foreach (var block in gyros)
+    {
+        if (overrideOn)
+        {
+            block.Yaw = 0f;
+            block.Pitch = 0f;
+            block.Roll = 0f;
+            block.GyroOverride = true;
+            block.GyroPower = 100f; //im assuming this is a percentage
+        }
+        else
+            block.GyroOverride = false; 
+    }
+}
+
 void ManageGravDrive(bool turnOn)
 {
     IMyShipController reference = GetControlledShipController(shipControllers);
 
     //Desired travel vector construction
     var referenceMatrix = reference.WorldMatrix;
-    var inputVec = reference.MoveIndicator; //raw input vector     
+    var inputVec = reference.MoveIndicator; //raw input vector
+    var rollVec = reference.RollIndicator;
+    var mouseInputVec = reference.RotationIndicator;
+    
+    if (useGyrosToStabilize)
+    {
+        //This method was derived from Rod-Serling's The One Gravity Drive Script
+        //Much simpler than the Differential Equations I was trying to solve
+        OverrideGyros(rollVec == 0 && mouseInputVec.LengthSquared() == 0 && turnOn);
+    }
+    
     var desiredDirection = referenceMatrix.Backward * inputVec.Z + referenceMatrix.Right * inputVec.X + referenceMatrix.Up * inputVec.Y; //world relative input vector
     if (desiredDirection.LengthSquared() > 0)
     {
@@ -258,7 +292,7 @@ void ManageGravDrive(bool turnOn)
         dampenersOn = true;
     }
 
-    if (velocityVec.LengthSquared() < 0.1 * 0.1)
+    if (velocityVec.LengthSquared() < speedThreshold * speedThreshold)
     {
         ToggleMass(artMasses, false);
         ToggleDirectionalGravity(gravityGens, desiredDirection, velocityVec, false, dampenersOn);
@@ -409,4 +443,6 @@ void ToggleMass(List<IMyVirtualMass> artMasses, bool toggleOn)
 * Fixed dampeners not acting the same way in different directions - v7
 * Optimized gravity gen calcs - v8
 * Reduced block refreshing from 10 Hz to 0.1 Hz - v8
+* Added gyro locking when user is not applying inputs - v9
+* Added to readme and rearranged some variables
 */
