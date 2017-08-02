@@ -1,5 +1,5 @@
 /*
-/// Whip's Directional Gravity Drive Control Script v10 - 7/28/17 ///
+/// Whip's Directional Gravity Drive Control Script v12 - 8/2/17 ///
 ________________________________________________
 Description:
 
@@ -28,11 +28,14 @@ Arguments
     on : Turns grav drive on
     off : Turns grav drive off
     toggle : toggles grav drive
+    dampeners_on: turns gravity dampeners on
+    dampeners_off: turns gravity dampeners off
+    dampeners_toggle: toggles gravity dampeners
 ________________________________________________
 Author's Notes
 
-    This code was written on request of my friend Avalash for his big cool carrier thing. I've decided to polish this code
-    and release it to the public. Leave any questions, comments, or concerns on the workshop page!
+    This code was written pon request of my friend Avalash for his big cool carrier thing. I've decided to polish this code
+    and release it to the public. Leave any questions, comments, or converns on the workshop page!
 
 - Whiplash141
 */
@@ -42,14 +45,22 @@ const string gravityDriveGroupName = "Gravity Drive";
 
 float gravityDriveDampenerScalingFactor = 0.1f;
 //larger values will quicken the dampening using gravity gens but will also risk causing oscillations
-//The higher the acceleration of your ship, the smaller this should be
+//The lighter your ship, the smaller this should be
 
-double speedThreshold = 0;
+double speedThreshold = 0.01;
 //Speed at which the code will stop using gravity drives. Zero means that 
 //the drive will never turn off (useful for ships with no thrusters)
 
 bool useGyrosToStabilize = true;
 //If the script will override gyros to try and combat torque
+
+bool useGravityDriveAsInertialDampeners = true;
+//If the code should treat the gravity drive as an inertial dampeners.
+//If no thrusters are found on the ship, this variable is used to determine
+//if inertial dampeners should be turned on/off.
+
+bool enableDampenersWhenNotControlled = true;
+//This will force gravity dampeners on if no one is controlling the ship
 
 //-------------------------------------------------------------------------
 //============ NO TOUCH BELOW HERE!!! =====================================
@@ -81,6 +92,18 @@ void Main(string arg)
         case "toggle":
             turnOn = !turnOn; //switches boolean value
             break;
+            
+        case "dampeners_on":
+            useGravityDriveAsInertialDampeners = true;
+            break;
+            
+        case "dampeners_off":
+            useGravityDriveAsInertialDampeners = false;
+            break;
+            
+        case "dampeners_toggle":
+            useGravityDriveAsInertialDampeners = !useGravityDriveAsInertialDampeners;
+            break;
     }
 
     timeCurrentCycle += Runtime.TimeSinceLastRun.TotalSeconds;
@@ -106,6 +129,11 @@ void Main(string arg)
                 Echo("\nGravity Drive is Enabled");
             else
                 Echo("\nGravity Drive is Disabled");
+            
+            if (useGravityDriveAsInertialDampeners)
+                Echo("\nGravity Dampeners Enabled");
+            else
+                Echo("\nGravity Dampeners Disabled");
 
             Echo($"\nGravity Drive Stats:\n Artificial Masses: {artMasses.Count}\n Gravity Generators:\n >Forward: {fowardGens.Count}\n >Backward: {backwardGens.Count}\n >Left: {leftGens.Count}\n >Right: {rightGens.Count}\n >Up: {upGens.Count}\n >Down: {downGens.Count}\n >Other: {otherGens.Count}");
             
@@ -261,9 +289,17 @@ void OverrideGyros(bool overrideOn)
     }
 }
 
+
 void ManageGravDrive(bool turnOn)
 {
     IMyShipController reference = GetControlledShipController(shipControllers);
+    
+    bool hasPilot = reference != null;
+    
+    if (!hasPilot)
+    {
+        reference = shipControllers[0];
+    }
 
     //Desired travel vector construction
     var referenceMatrix = reference.WorldMatrix;
@@ -285,22 +321,28 @@ void ManageGravDrive(bool turnOn)
     }
 
     var velocityVec = reference.GetShipVelocities().LinearVelocity;
-
-    bool dampenersOn = reference.DampenersOverride;
+    
+    bool hasThrust = true;
     if (onGridThrust.Count == 0)
-    {
-        dampenersOn = true;
-    }
+        hasThrust = false;
 
-    if (velocityVec.LengthSquared() < speedThreshold * speedThreshold)
+    bool dampenersOn = hasThrust ? useGravityDriveAsInertialDampeners ? reference.DampenersOverride : false : useGravityDriveAsInertialDampeners;
+    
+
+    if ((velocityVec.LengthSquared() <= speedThreshold * speedThreshold && Vector3D.IsZero(desiredDirection))|| !turnOn )
     {
         ToggleMass(artMasses, false);
-        ToggleDirectionalGravity(gravityGens, desiredDirection, velocityVec, false, dampenersOn);
+        ToggleDirectionalGravity(desiredDirection, velocityVec, false, dampenersOn);
+    }
+    else if (!hasPilot && enableDampenersWhenNotControlled)
+    {
+        ToggleMass(artMasses, true); //default all masses to turn on
+        ToggleDirectionalGravity(Vector3D.Zero, velocityVec, turnOn, true);
     }
     else
     {
         ToggleMass(artMasses, true); //default all masses to turn on
-        ToggleDirectionalGravity(gravityGens, desiredDirection, velocityVec, turnOn, dampenersOn); //add toggle for on off state
+        ToggleDirectionalGravity(desiredDirection, velocityVec, turnOn, dampenersOn);
     }
 }
 
@@ -312,10 +354,10 @@ IMyShipController GetControlledShipController(List<IMyShipController> SCs)
             return thisController;
     }
 
-    return SCs[0];
+    return null;
 }
 
-void ToggleDirectionalGravity(List<IMyGravityGenerator> gravGens, Vector3D direction, Vector3D velocityVec, bool turnOn, bool dampenersOn = true)
+void ToggleDirectionalGravity(Vector3D direction, Vector3D velocityVec, bool turnOn, bool dampenersOn = true)
 {
     //Handle on grid grav gens
     foreach (var list in gravityList)
@@ -444,5 +486,7 @@ void ToggleMass(List<IMyVirtualMass> artMasses, bool toggleOn)
 * Optimized gravity gen calcs - v8
 * Reduced block refreshing from 10 Hz to 0.1 Hz - v8
 * Added gyro locking when user is not applying inputs - v9
-* Added to readme and rearranged some variables
+* Added useGravityDriveAsInertialDampeners varialbe and arguments - v11
+* Added variable enableDampenersWhenNotControlled - v11
+* Added additional check for player input - v12
 */

@@ -68,6 +68,8 @@ void Main()
     foreach (IMyCameraBlock thisCamera in cameras) 
     { 
         thisCamera.EnableRaycast = true; 
+		if(!thisCamera.CanScan(range)) continue;
+		
         var targetInfo = thisCamera.Raycast(range); 
  
         if (targetInfo.IsEmpty()) 
@@ -97,7 +99,7 @@ void Main()
  
 void Detonate() 
 { 
-    var warheads = new List<IMyTerminalBlock>(); 
+    var warheads = new List<IMyWarhead>(); 
     GridTerminalSystem.GetBlocksOfType<IMyWarhead>(warheads); 
     foreach (IMyWarhead thisWarhead in warheads) 
     { 

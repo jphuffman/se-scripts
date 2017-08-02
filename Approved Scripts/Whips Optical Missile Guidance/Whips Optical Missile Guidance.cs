@@ -1,5 +1,5 @@
 /*    
-Whip's Optical Missile Guidance System v62-3 - revised: 5/22/17  
+Whip's Optical Missile Guidance System v62-7 - revised: 7/7/17  
 /// PUBLIC RELEASE ///   
 /// Stable /// 
 _______________________________________________________________________            
@@ -12,7 +12,7 @@ _______________________________________________________________________
     * Configurable detach sequence parameters!  
     * Automatic thruster orientation detection! No more pesky directional naming needed :D  
     * Works in atmosphere!  
-    * Runs at 10 Hz (old was 60 Hz) so it is much less laggy! SIX new missiles lag less than ONE of my old ones!  
+    * Runs at 20 Hz (old was 60 Hz) so it is much less laggy! THREE new missiles lag less than ONE of my old ones!  
     * Compensates for unwanted drift!  
     * Automatically shuts off and goes ballistic if vital components are damaged  
     * Safety mechanisms to stop the missile from flying up your tail pipe!  
@@ -25,7 +25,7 @@ ____________________________________________________________
     * A program block with this code  
     * A battery or reactor (for power)  
     * A merge, connector, or rotor (for attachment points)  
-    * A gyroscope pointing forward  
+    * A gyroscope 
  
     OPTIONAL BLOCKS:  
     * An artificial mass block  
@@ -92,7 +92,7 @@ string detachThrustTag = "Detach"; //(Optional) tag on detach thrust
 string shooterReferenceName = "Shooter Reference"; //name of the remote on the shooter vessel 
  
 //---Runtime variables  
-static double updatesPerSecond = 20; // self explanatory :P  
+double updatesPerSecond = 20; // self explanatory :P  
  
 //---Missile Detach Parameters 
 double disconnectDelay = 1; //time (in seconds) that the missile will delay disconnection from firing ship 
@@ -115,8 +115,8 @@ bool driftCompensation = true;
 // missile using just forward thrust!  
  
 //---Spiral Trajectory Parameters 
-bool enableSpiralTrajectory = true; //determines if missiles will spiral to avoid turret fire  
-static double spiralDegrees = 5; // angular deviation of the spiral pattern   
+bool enableSpiralTrajectory = false; //determines if missiles will spiral to avoid turret fire  
+double spiralDegrees = 5; // angular deviation of the spiral pattern   
 double timeMaxSpiral = 3; // time it takes the missile to complete a full spiral cycle  
  
 //---Rotation speed control system  
@@ -197,13 +197,11 @@ double timeElapsed = 0; //time elapsed over current iterations
 double timeTotal = 0; //total time program has been running   
 double lastYawAngle = 0; 
 double lastPitchAngle = 0; 
-double lastRollAngle = 0; 
  
-static double max_distance = 10000; //static b/c we change it on kill command  
+double max_distance = 10000; //static b/c we change it on kill command  
 const double degToRad = Math.PI / 180; 
 const double radToDeg = 180 / Math.PI; 
 const double max_time_to_guide = 300; //in seconds   
-static double timeLimit = 1 / updatesPerSecond; 
  
 Program() 
 { 
@@ -236,7 +234,7 @@ void Main(string arg)
             LaunchMissile(); 
             StatusCheck(); 
  
-            if (timeTotal >= guidanceDelay && timeElapsed >= timeLimit) 
+            if (timeTotal >= guidanceDelay && timeElapsed >= (1d / updatesPerSecond)) 
             { 
                 Echo("WMI Optical Missile Guidance System Active..."); Echo("Run Time: " + Math.Round(timeTotal).ToString()); 
                 GuideMissile(); 
@@ -471,8 +469,8 @@ void GrabBlocks()
  
     if (mergeBlocks.Count == 0 && rotors.Count == 0 && connectors.Count == 0) 
     { 
-        Echo("[FAILED] No merge blocks, rotors, or connectors found"); 
-        setupFailed = true; 
+        Echo("[WARNING] No merge blocks, rotors, or connectors found"); 
+        //setupFailed = true; 
     } 
  
     if (!setupFailed) 
@@ -550,7 +548,7 @@ void LaunchMissile()
  
         foreach (IMyWarhead thisWarhead in warheads) 
         { 
-            thisWarhead.SetValue("Safety", true); 
+            thisWarhead.SetValue("Safety", false); //this is backwards... because Keen 
         } 
  
         missileStage1 = true; 
@@ -638,7 +636,7 @@ void LaunchMissile()
  
         foreach (IMyWarhead thisWarhead in warheads) 
         { 
-            thisWarhead.SetValue("Safety", false); //arms warheads 
+            thisWarhead.SetValue("Safety", true); //arms warheads... Keen is drunk 
         } 
  
         MainThrustOverride(); 
@@ -707,9 +705,7 @@ void GuideMissile()
     //---Check if we have gravity  
     double rollAngle = 0; double rollSpeed = 0; 
  
-    var remote = remotes[0] as IMyRemoteControl; 
     inGravity = false; 
- 
     gravVec = missileReference.GetNaturalGravity(); 
     double gravMagSquared = gravVec.LengthSquared(); 
     if (gravMagSquared != 0) 
@@ -722,11 +718,7 @@ void GuideMissile()
         { 
             rollAngle = Math.PI + Math.Acos(MathHelper.Clamp(gravVec.Dot(missileLeftVec) / gravVec.Length(), -1, 1)); 
         } 
- 
-        if (firstGuidance) lastRollAngle = rollAngle; 
- 
-        rollSpeed = Math.Round(proportionalConstant * rollAngle + derivativeConstant * (rollAngle - lastRollAngle) / timeLimit, 2); 
- 
+        rollSpeed = rollAngle; 
         inGravity = true; 
     } 
     else 
@@ -795,8 +787,8 @@ void GuideMissile()
     } 
  
     //---Angle controller 
-    double yawSpeed = Math.Round(proportionalConstant * yawAngle + derivativeConstant * (yawAngle - lastYawAngle) / timeLimit, 2); 
-    double pitchSpeed = Math.Round(proportionalConstant * pitchAngle + derivativeConstant * (pitchAngle - lastPitchAngle) / timeLimit, 2); 
+    double yawSpeed = Math.Round(proportionalConstant * yawAngle + derivativeConstant * (yawAngle - lastYawAngle) / (1d / updatesPerSecond), 2); 
+    double pitchSpeed = Math.Round(proportionalConstant * pitchAngle + derivativeConstant * (pitchAngle - lastPitchAngle) / (1d / updatesPerSecond), 2); 
  
     //---Set appropriate gyro override  
     if (controlGyros) 
@@ -807,7 +799,6 @@ void GuideMissile()
     //---Store previous values  
     lastYawAngle = yawAngle; 
     lastPitchAngle = pitchAngle; 
-    lastRollAngle = rollAngle; 
  
     if (shouldKill) 
     { 
@@ -890,6 +881,7 @@ void ScaleAntennaRange(double dist)
 { 
     foreach (IMyRadioAntenna thisAntenna in antennas) 
     { 
+        thisAntenna.SetValue<bool>("EnableBroadCast", true); 
         thisAntenna.SetValue("Radius", (float)dist + 100f); 
     } 
  
@@ -994,10 +986,10 @@ Vector3D VectorReflection(Vector3D a, Vector3D b, double rejectionFactor = 1) //
  
 double VectorAngleBetween(Vector3D a, Vector3D b) //returns radians  
 { 
-    if (a.LengthSquared() == 0 || b.LengthSquared() == 0) 
+    if (Vector3D.IsZero(a) || Vector3D.IsZero(b)) 
         return 0; 
     else 
-        return Math.Acos(MathHelper.Clamp(a.Dot(b) / a.Length() / b.Length(), -1, 1)); 
+        return Math.Acos(MathHelper.Clamp(a.Dot(b) / Math.Sqrt(a.LengthSquared() * b.LengthSquared()), -1, 1)); 
 } 
  
 bool CheckDotPositive(Vector3D a, Vector3D b) 
@@ -1013,32 +1005,27 @@ bool CheckDotPositive(Vector3D a, Vector3D b)
     } 
 } 
  
-//Whip's Get Rotation Angles Method v4 
+//Whip's Get Rotation Angles Method v5 - 5/30/17 
 void GetRotationAngles(Vector3D v_target, Vector3D v_front, Vector3D v_left, Vector3D v_up, out double yaw, out double pitch) 
 { 
     //Dependencies: VectorProjection() | VectorAngleBetween() 
-    //Keen uses a stupid left hand rule coordSystem, I dont. 
-    var projTargetFront = VectorProjection(v_target, v_front); 
-    var projTargetLeft = VectorProjection(v_target, v_left); 
-    var projTargetUp = VectorProjection(v_target, v_up); 
-    var projTargetFrontLeft = projTargetFront + projTargetLeft; 
-    var projTargetFrontUp = projTargetFront + projTargetUp; 
+    var projectTargetUp = VectorProjection(v_target, v_up); 
+    var projTargetFrontLeft = v_target - projectTargetUp; 
  
     yaw = VectorAngleBetween(v_front, projTargetFrontLeft); 
-    pitch = VectorAngleBetween(v_front, projTargetFrontUp); 
+    pitch = VectorAngleBetween(v_target, projTargetFrontLeft); 
  
     //---Check if yaw angle is left or right   
     //multiplied by -1 to convert from right hand rule to left hand rule 
-    yaw = -1 * Math.Sign(v_left.Dot(projTargetLeft)) * yaw; 
+    yaw = -1 * Math.Sign(v_left.Dot(v_target)) * yaw; 
  
     //---Check if pitch angle is up or down     
-    pitch = Math.Sign(v_up.Dot(projTargetUp)) * pitch; 
+    pitch = Math.Sign(v_up.Dot(v_target)) * pitch; 
  
     //---Check if target vector is pointing opposite the front vector 
     if (pitch == 0 && yaw == 0 && v_target.Dot(v_front) < 0) 
     { 
         yaw = Math.PI; 
-        pitch = Math.PI; 
     } 
 } 
  
@@ -1187,11 +1174,12 @@ void ApplyGyroOverride(double pitch_speed, double yaw_speed, double roll_speed, 
 } 
  
 //Whip's Spiral Trajectory Method v2 
-double spiralRadius = Math.Tan(spiralDegrees * degToRad); 
+ 
 double timeSpiral = 0; 
  
 Vector3D SpiralTrajectory(Vector3D v_target, Vector3D v_front, Vector3D v_up) 
 { 
+    double spiralRadius = Math.Tan(spiralDegrees * degToRad); 
     Vector3D v_targ_norm = Vector3D.Normalize(v_target); 
  
     if (timeSpiral > timeMaxSpiral) 
@@ -1237,10 +1225,10 @@ void BuildConfig(IMyTerminalBlock block)
     configDict.Add("missileSpinRPM", missileSpinRPM.ToString()); 
  
      
-    WriteConfig(block); 
+    UpdateConfig(block, true); 
 } 
  
-void UpdateConfig(IMyTerminalBlock block) 
+void UpdateConfig(IMyTerminalBlock block, bool isBuilding = false) 
 { 
     string customData = block.CustomData; 
     var lines = customData.Split(new char[] { '\n', '\r' }, StringSplitOptions.RemoveEmptyEntries); 
@@ -1279,6 +1267,11 @@ void UpdateConfig(IMyTerminalBlock block)
     GetVariableFromConfig("missileSpinRPM", ref missileSpinRPM); 
      
     WriteConfig(block); 
+     
+    if (isBuilding) 
+        Echo("Config Loaded"); 
+    else 
+        Echo("Config Updated"); 
 } 
  
 StringBuilder configSB = new StringBuilder(); 
@@ -1371,4 +1364,11 @@ CHANGELOG:
 - Fixed obsolete method calls 
 - Changed time count to use 1/60 seconds as an assumed value instead of using runtime- this causes the code to run 10 times a simspeed second instead of a real second 
 - Added variable configuration to custom data 
+- Removed statics 
+- Tweaked the GetRotationAngles() method 
+- Optimized VectorAngleBetween() method 
+- Improved variable config functions 
+- Fixed antenna not broadcasting 
+- Fixed readme (thanks DarKovalord) 
+- Implemented workaround for bug where turning off the safety of a warhead would disarm it... thanks keen 
 */
