@@ -52,12 +52,6 @@ Color skimmerColor = new Color(255, 0, 0, 255);
 
 public Program() {
 
-    // The constructor, called only once every session and
-    // always before any other method is called. Use it to
-    // initialize your script. 
-    //     
-    // The constructor is optional and can be removed if not
-    // needed.
 	
 	Main("");
 
@@ -66,13 +60,8 @@ public Program() {
 
 public void Main(string argument) {
 
-    // The main entry point of the script, invoked every time
-    // one of the programmable block's Run actions are invoked.
-    // 
-    // The method itself is required, but the argument above
-    // can be removed if not needed.
-
 	if(argument == "toggle"){
+		//changing drive modes!
 		driveMode = !driveMode;
 	}
 	
@@ -83,18 +72,18 @@ public void Main(string argument) {
 	wheelsBlockGroup.GetBlocksOfType<IMyMotorSuspension>(wheelsList);
 	
 	
-	/*
+	/* // This is commented out for now, since the script doesn't do anything with cockpits. It might in the future however.
 	//get the cockpits
 	List<IMyCockpit> cockpitsList = new List<IMyCockpit>();
 	GridTerminalSystem.GetBlocksOfType<IMyCockpit>(cockpitsList);
 	*/
 	
-	//get the Lights
+	//get the lights
 	IMyBlockGroup lightsBlockGroup = GridTerminalSystem.GetBlockGroupWithName(statusLightsGroup);
 	List<IMyInteriorLight> lightsList = new List<IMyInteriorLight>(); 
 	lightsBlockGroup?.GetBlocksOfType<IMyInteriorLight>(lightsList);
 	
-	//get the tanks
+	//get the gas tanks
 	List<IMyGasTank> tanksList = new List<IMyGasTank>(); 
 	GridTerminalSystem.GetBlocksOfType<IMyGasTank>(tanksList);
 	
