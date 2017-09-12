@@ -34,6 +34,8 @@ const float roverPower = 100;
 const float roverFriction = 100;
 const float roverStrength = 50;
 const float roverDamping = 95;
+const bool roverSteering = true;
+const float roverSteeringAngle = 25;
 
 Color roverColor = new Color(255, 255, 0, 255);
 
@@ -97,8 +99,9 @@ public void Main(string argument) {
 			wheel.SetValue<float>("Friction", roverFriction);
 			wheel.SetValue<float>("Strength", roverStrength);
 			wheel.SetValue<float>("Damping", roverDamping);
+			//wheel.SetValue<float>("SteerAngle", roverSteeringAngle);
 			
-			wheel.SetValue<bool>("Steering", false);
+			wheel.SetValue<bool>("Steering", roverSteering);
 			wheel.SetValue<bool>("Propulsion", true);
 		}
 		
