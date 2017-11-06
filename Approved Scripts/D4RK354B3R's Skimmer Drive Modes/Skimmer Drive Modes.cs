@@ -99,7 +99,6 @@ public void Main(string argument) {
 			wheel.SetValue<float>("Friction", roverFriction);
 			wheel.SetValue<float>("Strength", roverStrength);
 			wheel.SetValue<float>("Damping", roverDamping);
-			//wheel.SetValue<float>("SteerAngle", roverSteeringAngle);
 			
 			wheel.SetValue<bool>("Steering", roverSteering);
 			wheel.SetValue<bool>("Propulsion", true);
