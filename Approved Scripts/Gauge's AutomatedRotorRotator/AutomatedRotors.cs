@@ -294,7 +294,7 @@ public void ConfigureRotors(bool shouldBeAlive)
 
 	    Operations operation = (Operations)Enum.Parse(typeof(Operations), firstCommand);
 
-	    if (settings.Length < 3 || operation == Operations.simple && settings.Length < 2)
+	    if (settings.Length < 3 && operation != Operations.simple || settings.Length < 2)
 	    {
 		runtimeMessages.Append($"[ERROR] Line {i + 1}: Not enough arguments\n");
 	    }
