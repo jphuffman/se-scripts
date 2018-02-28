@@ -7,16 +7,12 @@
  * The alarm is literally just a beacon that flickers on.
  * 
  * If the turrets haven't been active for 30 seconds, then the alarm deactivates.
- *
- * SETUP:
- * 1. Stick this script on a programmable block
- * 2. Put turrets on the same grid. no groups or naming needed.
- * 3. Stick a beacon on the same grid. this beacon's name must reflect the beaconName variable.
  */
 
 string beaconName = "BASE UNDER ATTACK"; //This is the name of the alarm beacon. caps sensitive
+string timerName = "";
 
-long flickerTime = 10; //This is how long the beacon flickers after an alarm has been set off. set to 0 or negative to disable.
+long flickerTime = 30; //This is how long the beacon flickers after an alarm has been set off. set to 0 or negative to disable.
 
 //dont touch shit below this
 
@@ -33,6 +29,10 @@ bool lastAlert = false;
 long alertCooldown = 30; //the time it takes for alarm to deactivate
 
 IMyBeacon alertBeacon = null;
+IMyTimerBlock alertTimer = null;
+Dictionary<long, double> damageTable = new Dictionary<long, double>();
+
+
 
 public Program()
 {
@@ -52,8 +52,6 @@ public void Main(string args)
 
 	// The method itself is required, but the argument above
 	// can be removed if not needed.
-
-	Echo("Running " + scriptTime);
 	
 	if (Runtime.TimeSinceLastRun.TotalSeconds != 0)
 	{
@@ -70,6 +68,12 @@ public void Main(string args)
 			return; //Make sure that it only runs once a second (approximately)
 		}
 	}
+	else
+	{
+		return; //wut
+	}
+
+	Echo("Running " + scriptTime);
 
 	if (alertBeacon == null)
 	{
@@ -77,15 +81,46 @@ public void Main(string args)
 		findAlertBeacon();
 	}
 
+	if(alertTimer == null)
+	{
+		findTimerBlock();
+	}
+
 	List<IMyLargeConveyorTurretBase> guns = new List<IMyLargeConveyorTurretBase>();
 	GridTerminalSystem.GetBlocksOfType<IMyLargeConveyorTurretBase>(guns);
 
 	bool newAlert = false;
 
-	foreach(IMyLargeConveyorTurretBase gun in guns) {
+	foreach (IMyLargeConveyorTurretBase gun in guns)
+	{
 		if (gun == null) continue;
+		long id = gun.EntityId;
+
+		//get the new health value
+		IMySlimBlock slim = gun.CubeGrid.GetCubeBlock(gun.Position);
+		double damage = slim.CurrentDamage;
+
+		double oldDamage = damage; //now update oldHealth from the dictionary
+		if (damageTable.ContainsKey(id))
+		{
+			damageTable.TryGetValue(id, out oldDamage);
+
+			if (oldDamage < damage) newAlert = true;
+		}
+		//update the dictionary with new health values
+		
+		damageTable[id] = damage;
+
+	}
+
+	foreach (IMyLargeConveyorTurretBase gun in guns) {
+		if (gun == null) continue;
+		if (newAlert) break;
+		//check to make sure that the target is not empty
 		MyDetectedEntityInfo target = gun.GetTargetedEntity();
 		if (target.IsEmpty()) continue;
+
+		if (!target.Relationship.Equals(MyRelationsBetweenPlayerAndBlock.Enemies)) continue;
 
 		newAlert = true;
 		break;
@@ -97,28 +132,42 @@ public void Main(string args)
 		{
 			alertTime = scriptTime;
 			cooloffTime = scriptTime;
+
+			if(alertTimer != null)
+			{
+				alertTimer.StartCountdown();
+				alertTimer.ApplyAction("OnOff_On");
+			}
 		}
 		alerted = true;
 
 		alertBeacon?.ApplyAction("OnOff_On");
+
+		Echo("ALERT");
 	}
 	else
 	{
-		if(lastAlert) //first second where there's no new targets
+		Echo("No Targets " + (cooloffTime + alertCooldown));
+		if (lastAlert) //first second where there's no new targets
 			cooloffTime = scriptTime; //record cooloffTime
 
 		if(alerted && scriptTime > cooloffTime + alertCooldown){
 			alertBeacon?.ApplyAction("OnOff_Off");
 			alerted = false;
+			cooloffTime = 0;
+			alertTime = 0;
+		} else if (alerted)
+		{
+			alertBeacon?.ApplyAction("OnOff_On");
 		}
-
 	}
 
 	//if alarm is on and I should flicker
 	if (alerted && scriptTime < alertTime + flickerTime)
 	{
+		Echo("Flicker");
 		//flicker the beacon
-		if (scriptTime % 2 == 0)
+		if ((scriptTime) % 2 == 0)
 			alertBeacon?.ApplyAction("OnOff_On");
 		else
 			alertBeacon?.ApplyAction("OnOff_Off");
@@ -139,7 +188,23 @@ void findAlertBeacon()
 			alertBeacon.ApplyAction("OnOff_Off");
 			alertBeacon.Radius = 50000;
 			alerted = false;
-			break;
+			return;
+		}
+	}
+}
+
+void findTimerBlock()
+{
+	if (timerName.Length == 0) return;
+
+	List<IMyTimerBlock> timers = new List<IMyTimerBlock>();
+	GridTerminalSystem.GetBlocksOfType<IMyTimerBlock>(timers);
+	foreach (IMyTimerBlock timer in timers)
+	{
+		if (timer.CustomName.Contains(timerName))
+		{
+			alertTimer = timer;
+			return;
 		}
 	}
 }
