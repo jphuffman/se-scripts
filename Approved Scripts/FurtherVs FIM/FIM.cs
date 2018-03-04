@@ -16,14 +16,20 @@
 //Configuration Section
 String GENERAL_TAG = "[FIM]";
 
+Boolean debug = false;
 
 //Do not touchy section
 
 Dictionary<String, List<IMyTerminalBlock>> typeCargoDictionary = new Dictionary<string, List<IMyTerminalBlock>>();
 
+Dictionary<String, double> oreTemplate;
+Dictionary<String, double> ingotTemplate;
+Dictionary<String, double> componentTemplate;
+
 String[] typeList = { "component", "ingot", "ore", "physicalgunobject", "ammomagazine", "oxygencontainerobject", "gascontainerobject" };
 
 List<IMyTextPanel> outputLCDList = new List<IMyTextPanel>();
+List<IMyTextPanel> debugLCDList = new List<IMyTextPanel>();
 List<IMyTerminalBlock> cargoBlocks = new List<IMyTerminalBlock>();
 
 
@@ -32,7 +38,7 @@ double lastRun = 3;
 
 public Program()
 {
-    if (!Me.CustomName.EndsWith(GENERAL_TAG))w 
+    if (!Me.CustomName.EndsWith(GENERAL_TAG))
     {
         Me.CustomName += " " + GENERAL_TAG;
     }
@@ -40,12 +46,35 @@ public Program()
     findBlocks();
     Me.CustomData = "Possible Item Types: component, ingot, ore,\nphysicalgunobject, ammomagazine, oxygencontainerobject,\ngascontainerobject\n\n";
 
+    String[] oreArray = {"Stone","Iron","Nickel","Cobalt","Silicon","Silver","Gold","Uranium","Platinum","Ice" };
+    String[] ingotArray = { "Stone", "Iron", "Nickel", "Cobalt", "Silicon", "Silver", "Gold", "Uranium", "Platinum" };
+    String[] componentArray = { "SteelPlate","InteriorPlate", "Construction", "Medical", "Detector", "SolarCell", "Motor", "Explosives", "BulletproofGlass", "Computer", "LargeTube", "Girder", "Display", "SmallTube", "MetalGrid", "Canvas", "Reactor", "PowerCell", "Thrust", };
+
+    oreTemplate = new Dictionary<string, double>();
+    foreach (var entry in oreArray)
+    {
+        oreTemplate.Add(entry, 0);
+    }
+
+    ingotTemplate = new Dictionary<string, double>();
+
+    foreach (var entry in ingotArray)
+    {
+        ingotTemplate.Add(entry, 0);
+    }
+
+    componentTemplate = new Dictionary<string, double>();
+        foreach (var entry in componentArray)
+    {
+        componentTemplate.Add(entry, 0);
+    }
+
 
     //CustomData Parsing for sorting
     //Sort Cargos in Categories
     foreach (var entry in cargoBlocks)
     {
-        if (entry.HasInventory)
+        if (entry.HasInventory && entry is IMyCargoContainer)
         {
             var cc = (IMyTerminalBlock)entry;
             String customDataContent = cc.CustomData;
@@ -88,7 +117,6 @@ public void Main(string argument, UpdateType updateSource)
         Echo("" + lastRun);
         return;
     }
-    lastRun = 0;
     if ((updateSource & (UpdateType.Trigger | UpdateType.Terminal)) != 0)
     {
         if (outputLCDList.Count == 0 || cargoBlocks.Count == 0)
@@ -98,9 +126,11 @@ public void Main(string argument, UpdateType updateSource)
         if (argument.ToLowerInvariant().Equals("sort"))
         {
             //Do Sorting
+            clearDebugLCD();
             sort();
             cooldown();
             Echo("");
+            lastRun = 0;
         }
         if (argument.ToLowerInvariant().Equals("count"))
         {
@@ -120,6 +150,7 @@ public void Main(string argument, UpdateType updateSource)
                     }
                 }
                 count(type, lcd);
+                lastRun = 3;
             }
             cooldown();
             Echo("Counted Items.");
@@ -141,13 +172,17 @@ void sort()
         if(entry.HasInventory)
         {
             var cc = (IMyTerminalBlock)entry;
-            List<IMyInventoryItem> itemList = entry.GetInventory().GetItems();
+            List<IMyInventoryItem> itemList = entry.GetInventory(0).GetItems();
             for(int itemSlotIndex = itemList.Count-1; itemSlotIndex >= 0; itemSlotIndex--)
             {
                 IMyInventoryItem item = itemList[itemSlotIndex];
                 String itemType = toItemType(item.Content.TypeId.ToString()).ToLowerInvariant();
                 //Me.CustomData += itemType + "\n";
-                if (!typeCargoDictionary.ContainsKey(itemType)) continue;
+                if (!typeCargoDictionary.ContainsKey(itemType))
+                {
+                    writeToAllDebugLCD($"[ERROR] - Failed to Move {itemType}\n");
+                    continue;
+                }
                 List<IMyTerminalBlock> destinationList = typeCargoDictionary[itemType];
                 if (destinationList != null)
                 {
@@ -157,6 +192,7 @@ void sort()
                         int maxIndex = destinationList.Count - 1;
                         IMyTerminalBlock destination = destinationList[destinationIndex];
                         if (destination.Equals(cc)) continue;
+						if(destinationList.Contains(cc)) continue;
                         Boolean success = false;
                         while(!success && destinationIndex <= maxIndex)
                         {
@@ -172,9 +208,11 @@ void sort()
                                 continue;
                             }
                             success = destination.GetInventory().TransferItemFrom(cc.GetInventory(), itemSlotIndex, null, true, null);
+                            writeToAllDebugLCD($"[TRY] - Moved {itemType} from {cc.CustomName} to {destination.CustomName}\n");
                             destinationIndex++;
                         }
                         if (success) itemstackCount++;
+                        if (success) writeToAllDebugLCD($"[SUCCESS] - Moved {itemType} from {cc.CustomName} to {destination.CustomName}\n");
                     }
                 }
 
@@ -184,16 +222,36 @@ void sort()
     Echo($"Sorted {itemstackCount} Items!");
 }
 
+Dictionary<String, double> getTemplateDictionary(String type)
+{
+    if (type.ToLowerInvariant().Equals("ore"))
+    {
+
+        return new Dictionary<String, double>(oreTemplate);
+    }
+    if (type.ToLowerInvariant().Equals("ingot"))
+    {
+
+        return new Dictionary<String, double>(ingotTemplate);
+    }
+    if (type.ToLowerInvariant().Equals("component"))
+    {
+
+        return new Dictionary<String, double>(componentTemplate);
+    }
+    return new Dictionary<string, double>();
+}
+
 void count(String type, IMyTextPanel lcd)
 {
-    Dictionary<String, double> itemDictionary = new Dictionary<string, double>();
+    Dictionary<String, double> itemDictionary = getTemplateDictionary(type);
 
     //Loop through all tagged blocks
     foreach (var block in cargoBlocks)
     {
         if(block != null && block.IsWorking)
         {
-            IMyInventory inventory = block.GetInventory();
+            IMyInventory inventory = block.GetInventory(0);
             List<IMyInventoryItem> items = inventory.GetItems();
             foreach (var item in items)
             {
@@ -262,6 +320,26 @@ string betterOutput(double d)
     return d.ToString();
 }
 
+void writeToAllDebugLCD(String s)
+{
+    if (debugLCDList.Count == 0) return;
+    if (!debug) return;
+    foreach (var debugLCD in debugLCDList)
+    {
+        debugLCD.WritePublicText(s, true);
+    }
+}
+
+void clearDebugLCD()
+{
+    if (debugLCDList.Count == 0) return;
+    if (!debug) return;
+    foreach (var debugLCD in debugLCDList)
+    {
+        debugLCD.WritePublicText("", false);
+    }
+}
+
 string centerText(String s, float fontSize)
 {
     int sizeAtDefault = 27;
@@ -297,7 +375,8 @@ void findBlocks()
         outputLCDList.Clear();
         cargoBlocks.Clear();
 
-        group.GetBlocksOfType<IMyTextPanel>(outputLCDList, (IMyTextPanel x) => x.IsFunctional);
+        group.GetBlocksOfType<IMyTextPanel>(outputLCDList, (IMyTextPanel x) => x.IsFunctional && x.CustomData!="debug");
+        group.GetBlocksOfType<IMyTextPanel>(debugLCDList, (IMyTextPanel x) => x.IsFunctional && x.CustomData == "debug");
         group.GetBlocksOfType<IMyTerminalBlock>(cargoBlocks, (IMyTerminalBlock x) => x.HasInventory);
 
     } else
