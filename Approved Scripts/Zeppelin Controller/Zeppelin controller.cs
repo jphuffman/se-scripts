@@ -99,9 +99,9 @@ public void Main(string argument)
 	{ 
 		findComponents(); 
 		Echo("INITIALIZED");
-		Runtime.UpdateFrequency = UpdateFrequency.Update10; 
 		init = true; 
 	} 
+	Runtime.UpdateFrequency = UpdateFrequency.Update10; 
 
 	
 	
@@ -197,20 +197,56 @@ public void Main(string argument)
 	printout += "Planet Mode: " + planet+"\n"; 
 
 	bool disable = false;
-	if((double)rc.CalculateShipMass().PhysicalMass <= (double)rc.CalculateShipMass().BaseMass) disable = true;
+	if((double)rc.CalculateShipMass().PhysicalMass <= (double)rc.CalculateShipMass().BaseMass){
+		List<IMyLandingGear> gears = new List<IMyLandingGear>();
+		GridTerminalSystem.GetBlocksOfType<IMyLandingGear>(gears);
+		foreach(IMyLandingGear gear in gears){
+			if(gear.IsLocked){
+				disable = true;
+				break;
+			}
+		}
+		
+		List<IMyShipConnector> connectors = new List<IMyShipConnector>();
+		GridTerminalSystem.GetBlocksOfType<IMyShipConnector>(connectors);
+		foreach(IMyShipConnector connector in connectors){
+			if(connector.IsLocked || connector.IsConnected){
+				disable = true;
+				break;
+			}
+		}
+	}
 	
-	double targetRatio = 0;
+	double avgTankFill = 0;
+	foreach(IMyGasTank tank in ballasts){
+		avgTankFill += tank.FilledRatio;
+	}
+	avgTankFill /= ballasts.Count();
 
 	double error = desiredAltitude - currentAltitude;
 	double currentRatio = getTotalFilledRatio(); 
 	double deltaError = currVertVel;//(error - lastError) * msElapsed / 1000.0;
 	
+	double pTerm = 0;
+	double iTerm = 0;
+	double dTerm = 0;
+	
+	double targetRatio = getNeededFilledRatio(desiredAltitude); 	
+	
 	if(!disable){			
 		PID_sum += (error + lastError) * (msElapsed) / 2000.0;
 		PID_sum *= I_decay;
+		pTerm = P * error;
+		iTerm = I * PID_sum;
+		dTerm = D * deltaError;
+		
+		//if(pTerm < -targetRatio / 2) pTerm = -targetRatio / 2;
+		//if(iTerm < -targetRatio / 2) iTerm = -targetRatio / 2;
+		if(dTerm < -targetRatio / 2) dTerm = -targetRatio / 2;
 	}
 	
-	targetRatio = P * error + I * PID_sum + D * deltaError + getNeededFilledRatio(desiredAltitude); 	
+	targetRatio += pTerm + iTerm + dTerm; 	
+	
 	
 	double deviation = Math.Abs(targetRatio - currentRatio); 
 	
@@ -221,13 +257,10 @@ public void Main(string argument)
 		toggleBalloon(true);
 		toggleBallast(false);
 		
-		double avgTankFill = 0;
-		foreach(IMyGasTank tank in ballasts){
-			avgTankFill += tank.FilledRatio;
-		}
-		avgTankFill /= ballasts.Count();
-		if(avgTankFill <= 0.1){
+		if(avgTankFill <= 0.95){
 			toggleOxygen(true);
+		}else{
+			toggleOxygen(false); 
 		}
 		
 		printout += "Increasing filled ratio\n"; 
@@ -239,11 +272,6 @@ public void Main(string argument)
 		toggleBallast(true);
 		toggleBalloon(false);
 		
-		double avgTankFill = 0;
-		foreach(IMyGasTank tank in ballasts){
-			avgTankFill += tank.FilledRatio;
-		}
-		avgTankFill /= ballasts.Count();
 		if(avgTankFill > 0.999){
 			toggleThrust(true);
 		}
@@ -253,9 +281,14 @@ public void Main(string argument)
 	else 
 	{ 
 		toggleThrust(false); 
-		toggleOxygen(false); 
 		toggleBallast(false);
 		toggleBalloon(false);
+		
+		if(avgTankFill <= 0.95){
+			toggleOxygen(true);
+		}else{
+			toggleOxygen(false); 
+		}
 		
 		printout += "Maintaining filled ratio\n"; 
 	} 
@@ -269,10 +302,46 @@ public void Main(string argument)
 	lcdUpdateTimer -= msElapsed;
 	
 	if(lcdUpdateTimer <= 0){
+		
 		lcdUpdateTimer = lcdUpdateDelay;
+		
+		if(disable){
+			//check cockpits
+			bool hasPilot = false;
+			List<IMyCockpit> cockpits = new List<IMyCockpit>();
+			GridTerminalSystem.GetBlocksOfType<IMyCockpit>(cockpits);
+			foreach(IMyCockpit cockpit in cockpits){
+				if(cockpit.IsUnderControl){
+					hasPilot = true;
+					break;
+				}
+			}
+			if(!hasPilot){
+				toggleThrust(false); 
+				toggleBalloon(false);
+				
+				if(avgTankFill <= 0.95){
+					toggleOxygen(true);
+					toggleBallast(true);
+				}else{
+					toggleOxygen(false);
+					toggleBallast(false); 
+				}
+				Runtime.UpdateFrequency = UpdateFrequency.None;
+				printout = "";
+				printout += "Zeppelin Control disabled. \nRun script to restart control. \n";
+				printout += "Current Altitude: " + Math.Round(currentAltitude, 3) + " km\n"; 
+				lcd?.WritePublicText(printout); 
+				PID_sum = 0;
+				lastError = 0;
+				desiredAltitude = currentAltitude;
+				return;
+			}
+		}
+		
 		if (targetRatio > 1) 
 		{ 
-			printout += "Desired altitude impossible to reach, moving to maximum possible\n"; 
+			printout += "Desired ratio impossible to reach\n"; 
 		} 
 		if(disable) printout += "Zeppelin is parked... " + "\n"; 
 		printout += "Current filled ratio: " + Math.Round(currentRatio * 100, 3) + "%\n"; 
