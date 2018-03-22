@@ -35,7 +35,7 @@
 //static double BALLOON_NEWTONS = 203039.49653; //Amount of Newtons of force exerted by each balloon 
 
 //static double BALLOON_NEWTONS = 4761.90476; //Amount of Newtons of force exerted by each balloon 
-static double BALLOON_NEWTONS = 372032.884096; //Amount of Newtons of force exerted by each balloon 
+static double BALLOON_NEWTONS = 372032.884096 * 42 / 30; //Amount of Newtons of force exerted by each balloon 
 static string BALLOON_NAME = "balloon"; //Balloons' names must be in this group 
 static double G = 9.81; //Acceleration imparted by gravity on the earth 
 static string RC_NAME = "[rc]"; //Remote control's name must contain this 
@@ -45,13 +45,15 @@ static string BALLAST_NAME = "ballast";//Ballast tanks used to absorb hydrogen
 static string LCD_NAME = "[lcd]"; //LCD used to display information must contain this in its name 
 static double ERROR_MARGIN = 0.0015; //Amount of error program will tolerate in terms of filled ratio 
 
+const bool useExhaust = false; //Whether or not this should use the hydrogen exhaust to dump hydrogen.
+
 static double lcdUpdateDelay = 1000;
 static double lcdUpdateTimer = 0;
 
 double P = 1;
-double I = 0.5;
-double D = -0.025;
-double I_decay = 0.8;
+double I = 1;
+double D = -0.03;
+double I_decay = 0.9;
 
 //Variables 
 double desiredAltitude = 3.5; 
@@ -492,6 +494,7 @@ double getTotalFilledRatio()
 
 void toggleThrust(Boolean on) 
 { 
+	if(!useExhaust) return;
 	foreach (IMyThrust thrust in thrusters) 
 	{ 
 		thrust.SetValueFloat("Override", 100); 
