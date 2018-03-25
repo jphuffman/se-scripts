@@ -52,9 +52,9 @@ static double lcdUpdateTimer = 0;
 
 
 double P = 1;
-double I = 1;
-double D = -0.05;
-double I_decay = 0.75;
+double I = 1.5;
+double D = -0.03;
+double I_decay = 0.8;
 
 //Variables 
 double desiredAltitude = 3.5; 
@@ -220,7 +220,7 @@ public void Main(string argument)
 			}
 		}
 	}
-	if(rc.CalculateShipMass().BaseMass == 0){
+	if(rc.CalculateShipMass().BaseMass == 0 || (double)rc.CalculateShipMass().PhysicalMass == 0){
 		disable = true;
 	}
 	
