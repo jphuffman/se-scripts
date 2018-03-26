@@ -8,21 +8,13 @@
  * 2a. Place however many balloons as you wish, making sure they are in the same conveyor network. Make sure they are all in a group called "balloon"(Without quotations). 
  * 2b. Place however many hydrogen tanks as you wish, making sure they are in the same conveyor network. Make sure they are all in a group called "ballast"(Without quotations). 
  *  
- * 3. Place your desired amount of oxygen generators. These will be used to fill up the balloons when needed, so, if you are in survival, make sure they are well stocked with ice! Make sure they are on the same conveyor network as the balloons. Make sure they are all in a group called "oxyGen"(Without quotations) 
+ * 3. Place your desired amount of hydrogen farm. These will be used to fill up the balloons when needed, so, if you are in survival, make sure they are well stocked with ice! Make sure they are on the same conveyor network as the balloons. Make sure they are all in a group called "hydroFarm"(Without quotations) 
  *  
- * 4. Place a few hydrogen thrusters facing upward. These will be used to dispose of excess hydrogen in the balloons. Put them in a group called "exhaust"(without quotations). 
+ * 4. Place a hydrogen thruster facing whichever way. These will be used to dispose of excess hydrogen in the balloons. Put them in a group called "exhaust"(without quotations). 
  *  
- * 5. Place down a programming block. Open its terminal, click edit and import the script. Now, in the programming block's terminal you will see a text box going by the name of "arguments". This is where you will input all of your configuration. Here the most important arguments are "sea" or "ter". The "sea" argument will allow you to set your altitude based on the sea level. However, the "ter" argument will allow you to set your altitude based on your altitude relative to the ground, this is the altitude that you see on your HUD. So, for example, if you would like to go to an altitude of 3km relative to the ground, you would enter into the arguments section "ter 3"(Without quotations). 
+ * 5. To start the script, simply run it. I recommend running it with the "reset" command before doing anything else, and make sure your gas cells are only about 70% full.
  *  
- * IMPORTANT: The script defaults to support the weaker version of the zeppelin mod. However, if you would like to use the stronger version, you must input the argument "bforce 6000"(Without quotations) in addition to your other arguments. For example, if you wanted to achieve an altitude of 3km relative to the terrain below you, and were using the stronger version of the zeppelin mod, you would use the argument "ter 3;bforce 6000"(Without quotations). 
- *  
- * 6. Place down a timer. Now go into the terminal and edit its actions. Add your programming block, with the action "Run with default argument", as well as your timer, with the action "Trigger now". 
- * (OPTIONAL) I strongly advise you to obtain a gravity alignment script. This script will work without one running, but your experience flying will be worse. To add one of these onto your craft, consult the instruction for the gravity alignment script of your choosing. 
- *  
- * 7. To start the script, go to the Timer's terminal and click "Trigger now". NOTE: It is also possible to run the script every 1 second or even a longer time interval, however its accuracy and safety in flight will decrease. You may wish to consider this, as this script is a considerable burden on the host machine. 
- *  
- * 8. Happy flying! Keep in mind that once you reach the correct filled ratio(as indicated on the left panel in the programming block's terminal), you do not need to continue running the script any longer, and may deactivate it and you will conserve your altitude(unless you change your ship's mass, as this affects the filled ratio needed to achieve a certain altitude) 
- *
+ * 6. Happy flying! Try not to change altitude too rapidly. The script will turn itself off when you park and leave the zeppelin.
  *
  * :SCRIPT COMMANDS:
  * sea <number> 		Set target altitude to <number> kilometers above sea level
@@ -50,6 +42,7 @@ static double ERROR_MARGIN = 0.0015; //Amount of error program will tolerate in 
 static double lcdUpdateDelay = 1000;
 static double lcdUpdateTimer = 0;
 
+double errorClamp = 0.15;
 
 double P = 1;
 double I = 1.5;
@@ -231,6 +224,9 @@ public void Main(string argument)
 	avgTankFill /= ballasts.Count();
 
 	double error = desiredAltitude - currentAltitude;
+	if(error > errorClamp) error = errorClamp;
+	if(error < -errorClamp) error = -errorClamp;
+	
 	double currentRatio = getTotalFilledRatio(); 
 	double deltaError = currVertVel;//(error - lastError) * msElapsed / 1000.0;
 	
