@@ -91,7 +91,6 @@ public void Main(string argument)
 	msElapsed = Runtime.TimeSinceLastRun.Milliseconds; 
 	String printout=""; 
 	 
-
 	if (!init) 
 	{ 
 		findComponents(); 
@@ -100,8 +99,6 @@ public void Main(string argument)
 	} 
 	Runtime.UpdateFrequency = UpdateFrequency.Update10; 
 
-	
-	
 	//
 	rc.TryGetPlanetElevation(MyPlanetElevation.Sealevel, out currentAltitude); 
 	currentAltitude/=1000;
